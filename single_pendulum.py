@@ -41,9 +41,7 @@ class DoublePendulum:
     def positions(self):
         x1 = self.l1 * math.sin(self.theta1)
         y1 = -self.l1 * math.cos(self.theta1)
-        x2 = x1 + self.l2 * math.sin(self.theta2)
-        y2 = y1 - self.l2 * math.cos(self.theta2)
-        return x1, y1, x2, y2
+        return x1, y1
 
 
 class DoublePendulumApp:
@@ -53,6 +51,8 @@ class DoublePendulumApp:
         self.origin = initial_origin
 
         self.canvas = tk.Canvas(root, width=800, height=600, bg="white")
+        
+        self.canvas.bind("<Configure>", self.on_resize)
         self.canvas.pack()
 
         self.line1 = self.canvas.create_line(0, 0, 0, 0, width=2, fill="blue")
@@ -76,15 +76,17 @@ class DoublePendulumApp:
         self.drag_slider.bind("<Motion>", update_drag)
 
         self.update()
+    
+    def on_resize(self, event):
+        self.canvas.config(width=event.width, height=event.height)
+        self.origin = (event.width // 2, event.height // 2)
 
     def update(self):
         dt = 0.01
         self.pendulum.step(dt)
-        x1, y1, x2, y2 = self.pendulum.positions()
+        x1, y1 = self.pendulum.positions()
         x1_screen = self.origin[0] + x1 * 100
         y1_screen = self.origin[1] + y1 * 100
-        x2_screen = self.origin[0] + x2 * 100
-        y2_screen = self.origin[1] + y2 * 100
 
         self.canvas.coords(self.line1, self.origin[0], self.origin[1], x1_screen, y1_screen)
         self.canvas.coords(self.mass1, x1_screen - 10, y1_screen - 10, x1_screen + 10, y1_screen + 10)
@@ -99,15 +101,11 @@ def toggle_playing(event):
 
 def grab(event):
     global playing, app
-    x1, y1, x2, y2 = app.pendulum.positions()
+    x1, y1 = app.pendulum.positions()
     x1 *= 100
     y1 *= 100
-    x2 *= 100
-    y2 *= 100
-    x1 += initial_origin[0]
-    y1 += initial_origin[1]
-    x2 += initial_origin[0]
-    y2 += initial_origin[1]
+    x1 += app.origin[0]
+    y1 += app.origin[1]
     
     if (x1 - 10 < event.x < x1 + 10) and (y1 - 10 < event.y < y1 + 10):
         global mouse_has_pendulum_one
@@ -119,11 +117,9 @@ def grab(event):
 
 def drag(event):
     global mouse_has_pendulum_one, mouse_has_pendulum_two
-    x1, y1, x2, y2 = app.pendulum.positions()
+    x1, y1 = app.pendulum.positions()
     x1 *= 100
     y1 *= 100
-    x2 *= 100
-    y2 *= 100
     if mouse_has_pendulum_one or mouse_has_pendulum_two:
         app.pendulum.omega1 = 0
         app.pendulum.omega2 = 0
@@ -137,16 +133,12 @@ def drag(event):
 def release(event):
     global mouse_has_pendulum_one, mouse_has_pendulum_two
     mouse_has_pendulum_one = False
-    mouse_has_pendulum_two = False
 
 def reset(event):
     global playing, app
     app.pendulum.theta1 = math.radians(120)
-    app.pendulum.theta2 = math.radians(90)
     app.pendulum.omega1 = 0
-    app.pendulum.omega2 = 0
     app.pendulum.l1 = 1
-    app.pendulum.l2 = 1
     
 def update_gravity(event):
     global gravity
